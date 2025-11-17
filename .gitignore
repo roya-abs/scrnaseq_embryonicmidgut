@@ -251,7 +251,3 @@ nextflow.log
 *.tmp
 *.temp
 .cache/
-<<<<<<< HEAD
-=======
-*.h5ad
->>>>>>> abe2d74 (Initial commit without large h5ad file)
