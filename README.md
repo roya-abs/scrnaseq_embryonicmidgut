@@ -5,4 +5,5 @@
 ## Data availability
 
 Data for signature scoring of adult midgut regional genes are available at:
-https://github.com/roya-abs/Microarray_AdultMidgut
+https://github.com/roya-abs/microarray_adultmidgut
+
