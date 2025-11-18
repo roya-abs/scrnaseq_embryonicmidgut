@@ -213,6 +213,7 @@ __marimo__/
 # Raw or intermediate data (large files)
 data/raw/
 data/intermediate/
+data/processed/
 *.h5
 *.hdf5
 *.h5ad
