@@ -226,6 +226,7 @@ data/processed/
 *.fa
 *.gtf
 *.gff
+*.rds
 
 
 # --- Outputs ---
