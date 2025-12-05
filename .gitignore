@@ -253,3 +253,19 @@ nextflow.log
 *.tmp
 *.temp
 .cache/
+
+# --- Nextflow execution folders ---
+work/
+.nextflow*
+.nf-test/
+.cache/
+timeline.html
+report.html
+trace.txt
+dag.svg
+
+# --- Output and intermediate files ---
+results/
+output/
+logs/
+
