@@ -1,0 +1,121 @@
+---
+title: "Trajectory Differential Expression (TDE) Analysis Using Lamian"
+output: html_notebook
+---
+## Purpose
+
+To identify genes whose expression changes along the inferred pseudotime trajectory, we applied the Lamian framework using the trajectory differential expression (TDE) test. This analysis yields a set of genes that show significant, continuous expression changes along the posterior midgut trajectory.
+
+### Input
+
+* A library-size–normalized and log-transformed expression matrix comprising 13,743 genes across 1,539 WT posterior midgut cells
+
+* Pseudotime values assigned to each cell
+
+* Cell-level metadata, including batch information
+
+### Workflow overview
+
+A TDE test was performed using the Lamian framework.
+The design matrix consisted of a single intercept term, with all entries set to 1, corresponding to a null model without additional covariates.
+Statistical significance was assessed using 100 permutations to estimate the null distribution.
+
+### Output
+
+* A list of genes exhibiting significant trajectory-dependent expression changes
+
+* 2003 genes were identified as TDE genes with an overall FDR < 0.05
+
+
+
+```{r}
+suppressMessages(library(Lamian))
+vignette('Lamian')
+
+pmg_expr <- read.csv('../../data/processed/PMG_Norm_allgenes_expr.csv', check.names = F)
+head(pmg_expr)
+```
+```{r}
+rownames(pmg_expr) <- pmg_expr[, 1]
+pmg_expr
+```
+```{r}
+pmg_expr <- pmg_expr[, -1]
+head(pmg_expr)
+#Lamian needs a gene by cell expression matrix
+pmg_expr <- t(pmg_expr)
+dim(pmg_expr)
+```
+```{r}
+metadata <- read.csv('../../data/processed/PMG_allgenes_metadata.csv', check.names = F)
+metadata
+rownames(metadata) <- metadata[[1]]
+
+metadata_f <- data.frame(row.names = rownames(metadata), cell=rownames(metadata), sample=metadata$batch) 
+metadata_f
+```
+```{r}
+pseudotime <- read.csv('../../data/processed/pseudotime_vector_pmg.csv', header = F, stringsAsFactors = F)
+pseudotime <- setNames(pseudotime[[2]], pseudotime[[1]])
+head(pseudotime)
+```
+
+
+```{r}
+design <- data.frame(intercept= rep(1, 4), row.names = c('WT_01', 'WT_02', 'WT_03', 'WT_04'), group="WT")
+design
+```
+
+
+```{r}
+pmg_list <- list(expression = pmg_expr, cellanno=metadata_f, pseudotime=pseudotime, design=design)
+str(pmg_list)
+```
+```{r}
+str(pmg_list$design)
+```
+```{r}
+summary(pmg_list$pseudotime)
+anyNA(pmg_list$pseudotime)
+head(names(pmg_list$pseudotime))
+```
+
+
+```{r}
+ncol(pmg_list$design)
+pmg_list$design
+all(unique(pmg_list$cellanno$sample) %in% rownames(pmg_list$design))
+unique(pmg_list$cellanno$sample)
+```
+```{r}
+rownames(pmg_list$design)
+```
+
+
+
+
+
+```{r}
+Res <- lamian_test(expr = pmg_list$expression,
+                   cellanno = pmg_list$cellanno,
+                   pseudotime = pmg_list$pseudotime,
+                   design = pmg_list$design,
+                   testvar = 1,
+                   test.type = "time",
+                   permuiter = 100, ncores = 6)
+```
+```{r}
+head(Res$statistics)
+diffgene <- rownames(Res$statistics)[Res$statistics[, 1] < 0.05]
+length(diffgene)
+```
+```{r}
+write.csv(data.frame(gene=diffgene),
+          "../../data/processed/TDE_wt_pmg.csv",
+          row.names = F)
+```
+
+
+
+
+
