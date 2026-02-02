@@ -1,0 +1,114 @@
+---
+title: "Lamian XDE test - WT vs. LanB2"
+output: html_notebook
+---
+## Purpose
+To identify genes that are differentially expressed between wild-type (WT) and LanB2 mutant cells among the set of trajectory-driving genes.
+
+## Input
+* A library-size–normalized and log-transformed expression matrix comprising 2003 trajectory-driving genes (derived from TDE analysis), measured across equal numbers of WT and LanB2 posterior midgut cells.
+
+* Cell-level pseudotime values.
+
+* Cell-level metadata, including batch and dataset information.
+
+## Workflow overview
+1. Differential trajectory analysis
+A trajectory-based differential expression (XDE) test was performed using the Lamian framework.
+
+2. Design matrix specification
+The design matrix consisted of:
+* an intercept term (first column, all ones), and
+* a sample-level covariate representing experimental condition (WT vs LanB2).
+
+3. Statistical testing
+The chi-square test was used as the primary test statistic. Due to the limited number of cells, the permutation-based test was not feasible and did not yield stable results.
+
+## Output
+* A list of genes exhibiting significant trajectory-dependent expression differences between WT and LanB2
+* In total, 59 genes were identified as differentially expressed along pseudotime, with an overall FDR < 0.05.
+
+
+```{r}
+suppressMessages(library(Lamian))
+lan_expr <- read.csv('../../data/processed/geneexpr_wt_lan.csv', check.names = F)
+dim(lan_expr)
+```
+```{r}
+rownames(lan_expr) <- lan_expr[, 1]
+lan_expr
+```
+```{r}
+lan_expr <- lan_expr[, -1]
+head(lan_expr)
+#Lamian needs a gene by cell expression matrix
+dim(lan_expr)
+lan_expr_t = t(lan_expr)
+```
+```{r}
+metadata_lan <- read.csv('../../data/processed/metadata_wt_lan.csv', check.names = F)
+metadata_lan
+rownames(metadata_lan) <- metadata_lan[, 1]
+metadata_lan <- metadata_lan[, -1]
+metadata_lan
+head(rownames(metadata_lan))
+names(metadata_lan)
+cellanno_lan <- data.frame(
+  cell   = rownames(metadata_lan),
+  sample = metadata_lan$batch,
+  row.names = rownames(metadata_lan),
+  stringsAsFactors = FALSE
+)
+cellanno_lan
+```
+```{r}
+pseudotime <- read.csv('../../data/processed/pseudotime_wt_lan.csv', header = F, stringsAsFactors = F)
+pseudotime <- setNames(pseudotime[[2]], pseudotime[[1]])
+head(pseudotime)
+```
+```{r}
+design_lan <- data.frame(intercept= rep(1, 6), row.names = c('WT_01', 'WT_02', 'WT_03', 'WT_04', 'LanB_01', 'LanB_02'), group=c(0, 0, 0, 0, 1, 1))
+design_lan
+```
+```{r}
+list_wt_lan <- list(expression = lan_expr_t, cellanno=cellanno_lan, pseudotime=pseudotime, design=design_lan)
+str(list_wt_lan)
+```
+
+
+
+
+
+```{r}
+# I switched to chi-square because the permutation failed. This could be because of the small number of cells per sample.
+Res_lan <- lamian_test(
+  expr = list_wt_lan$expr,
+  cellanno = list_wt_lan$cellanno,
+  pseudotime = list_wt_lan$pseudotime,
+  design = list_wt_lan$design,
+  test.type = 'variable',
+  testvar = 2,
+  test.method = 'chisq',
+  ncores = 1
+)
+```
+```{r}
+stat_lan <- Res_lan$statistics
+head(stat_lan)
+diffgene <- rownames(Res_lan$statistics)[Res_lan$statistics[, 1] < 0.05]
+length(diffgene)
+```
+```{r}
+write.csv(data.frame(gene=diffgene),
+          "../../data/processed/XDE_wt_lan.csv",
+          row.names = F)
+```
+```{r}
+Res_lan$statistics[Res_lan$statistics$fdr.chisq.overall<0.05,]
+```
+
+
+
+
+
+
