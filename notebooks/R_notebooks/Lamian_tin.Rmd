@@ -1,0 +1,115 @@
+---
+title: "Lamian XDE test - WT vs. tinman"
+output: html_notebook
+---
+## Purpose
+To identify genes that are differentially expressed between wild-type (WT) and tinman mutant cells among the set of trajectory-driving genes.
+
+## Input
+* A library-size–normalized and log-transformed expression matrix comprising 2003 trajectory-driving genes (derived from TDE analysis), measured across equal numbers of WT and tinman posterior midgut cells.
+
+* Cell-level pseudotime values.
+
+* Cell-level metadata, including batch and dataset information.
+
+## Workflow overview
+1. Differential trajectory analysis
+A trajectory-based differential expression (XDE) test was performed using the Lamian framework.
+
+2. Design matrix specification
+The design matrix consisted of:
+* an intercept term (first column, all ones), and
+* a sample-level covariate representing experimental condition (WT vs tinman).
+
+3. Statistical testing
+The chi-square test was used as the primary test statistic. Due to the limited number of cells, the permutation-based test was not feasible and did not yield stable results.
+
+## Output
+* A list of genes exhibiting significant trajectory-dependent expression differences between WT and tinman.
+* In total, 26 genes were identified as differentially expressed along pseudotime, with an overall FDR < 0.05.
+
+
+```{r}
+suppressMessages(library(Lamian))
+tin_expr <- read.csv('../../data/processed/geneexpr_wt_tin.csv', check.names = F)
+dim(tin_expr)
+```
+```{r}
+rownames(tin_expr) <- tin_expr[, 1]
+tin_expr
+```
+```{r}
+tin_expr <- tin_expr[, -1]
+head(tin_expr)
+#Lamian needs a gene by cell expression matrix
+dim(tin_expr)
+tin_expr_t = t(tin_expr)
+```
+
+```{r}
+metadata_tin <- read.csv('../../data/processed/metadata_wt_tin.csv', check.names = F)
+metadata_tin
+rownames(metadata_tin) <- metadata_tin[, 1]
+metadata_tin <- metadata_tin[, -1]
+head(rownames(metadata_tin))
+cellanno_tin <- data.frame(
+  cell   = rownames(metadata_tin),
+  sample = metadata_tin$batch,
+  row.names = rownames(metadata_tin),
+  stringsAsFactors = FALSE
+)
+cellanno_tin
+```
+```{r}
+pseudotime <- read.csv('../../data/processed/pseudotime_wt_tin.csv', header = F, stringsAsFactors = F)
+pseudotime <- setNames(pseudotime[[2]], pseudotime[[1]])
+head(pseudotime)
+```
+```{r}
+design_tin <- data.frame(intercept= rep(1, 6), row.names = c('WT_01', 'WT_02', 'WT_03', 'WT_04', 'tin_01', 'tin_02'), group=c(0, 0, 0, 0, 1, 1))
+design_tin
+```
+```{r}
+list_wt_tin <- list(expression = tin_expr_t, cellanno=cellanno_tin, pseudotime=pseudotime, design=design_tin)
+str(list_wt_tin)
+```
+
+
+
+
+
+```{r}
+# I switched to chi-square because the permutation failed. This could be because of the small number of cells per sample.
+Res_tin <- lamian_test(
+  expr = list_wt_tin$expr,
+  cellanno = list_wt_tin$cellanno,
+  pseudotime = list_wt_tin$pseudotime,
+  design = list_wt_tin$design,
+  test.type = 'variable',
+  testvar = 2,
+  test.method = 'chisq',
+  ncores = 1
+)
+```
+```{r}
+stat_tin <- Res_tin$statistics
+head(stat_tin)
+diffgene <- rownames(Res_tin$statistics)[Res_tin$statistics[, 1] < 0.05]
+length(diffgene)
+```
+```{r}
+write.csv(data.frame(gene=diffgene),
+          "../../data/processed/XDE_wt_tin.csv",
+          row.names = F)
+```
+```{r}
+Res_tin$statistics[Res_tin$statistics$fdr.chisq.overall<0.05,]
+```
+
+
+
+
+
+
+
+
