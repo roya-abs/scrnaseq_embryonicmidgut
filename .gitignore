@@ -275,5 +275,6 @@ figures/
 
 # --- pyscenic ---
 workflow/pyscenic/config.env
+workflow/pyscenic/output/
 
 
