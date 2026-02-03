@@ -227,6 +227,9 @@ data/processed/
 *.gtf
 *.gff
 *.rds
+*.feather
+*.tbl
+
 
 
 # --- Outputs ---
@@ -269,5 +272,8 @@ results/
 output/
 logs/
 figures/
+
+# --- pyscenic ---
+workflow/pyscenic/config.env
 
 
