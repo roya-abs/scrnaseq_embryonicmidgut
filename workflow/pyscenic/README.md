@@ -1,4 +1,4 @@
-# Gene regulatory networl inference
+# Gene regulatory network inference
 
 
 We inferred GRNs and regulon activity using pySCENIC via the official Docker image `aertslab/pyscenic:0.12.0`, following the SCENIC workflow: GRN inference → motif enrichment (CTX) → AUCell scoring. Input expression matrices and cisTarget ranking databases were mounted into the container and processed using 6 workers per step.
@@ -17,6 +17,7 @@ We inferred GRNs and regulon activity using pySCENIC via the official Docker ima
 * AUCell matrix → `auc_mtx.csv`
 
 **How to run**
+
 bash workflow/pyscenic/run_pyscenic.sh
 
 **References**
